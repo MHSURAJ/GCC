@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: linear-gradient(135deg,#1e1e2f,#121212);
+  color: white;
+}
+
+.container {
+  max-width: 400px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
+}
+
+input, button {
+  width: 100%;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  background: #4CAF50;
+  color: white;
+}
+
+ul li {
+  background: #222;
+  padding: 10px;
+  margin: 5px;
+}
