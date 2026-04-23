@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Car Controller</title>
+<title>Car Controller</title>
 
 <style>
 body{
@@ -17,9 +17,17 @@ canvas{
   border-radius:50%;
 }
 
-.slider{
-  width:80%;
+.btn{
+  width:120px;
+  height:60px;
+  font-size:18px;
+  margin:10px;
+  border:none;
+  border-radius:10px;
 }
+
+#gas{background:green;}
+#brake{background:red;}
 
 #speedometer{
   font-size:28px;
@@ -30,17 +38,14 @@ canvas{
 
 <body>
 
-<h2>🚗 PRO DRIVING CONTROLLER</h2>
+<h2>🚗 Controller</h2>
 
 <canvas id="wheel" width="260" height="260"></canvas>
 
 <br><br>
 
-<p>⛽ Accelerator</p>
-<input type="range" id="gas" class="slider" min="0" max="255">
-
-<p>🛑 Brake</p>
-<input type="range" id="brake" class="slider" min="0" max="255">
+<button id="gas" class="btn">⛽ GAS</button>
+<button id="brake" class="btn">🛑 BRAKE</button>
 
 <div id="speedometer">0 km/h</div>
 
@@ -51,10 +56,13 @@ let canvas = document.getElementById("wheel");
 let ctx = canvas.getContext("2d");
 
 let angle = 0;
-let targetSpeed = 0;
-let smoothSpeed = 0;
 
-// Draw steering wheel
+// speed system
+let speed = 0;
+let accelerating = false;
+let braking = false;
+
+// steering draw
 function drawWheel(){
     ctx.clearRect(0,0,260,260);
 
@@ -77,7 +85,7 @@ function drawWheel(){
 }
 drawWheel();
 
-// Touch steering
+// steering control
 canvas.addEventListener("touchmove",(e)=>{
     let rect = canvas.getBoundingClientRect();
 
@@ -88,28 +96,46 @@ canvas.addEventListener("touchmove",(e)=>{
     drawWheel();
 });
 
-// Smooth speed calculation
+// BUTTON CONTROLS
+let gasBtn = document.getElementById("gas");
+let brakeBtn = document.getElementById("brake");
+
+// GAS hold
+gasBtn.ontouchstart = ()=> accelerating = true;
+gasBtn.ontouchend   = ()=> accelerating = false;
+
+// BRAKE hold
+brakeBtn.ontouchstart = ()=> braking = true;
+brakeBtn.ontouchend   = ()=> braking = false;
+
+// SPEED UPDATE
 function updateSpeed(){
-    let gas = document.getElementById("gas").value;
-    let brake = document.getElementById("brake").value;
 
-    targetSpeed = gas - brake;
-    if(targetSpeed < 0) targetSpeed = 0;
+    if(accelerating){
+        speed += 5; // accelerate
+    }
+    else if(braking){
+        speed -= 10; // brake fast
+    }
+    else{
+        speed *= 0.98; // natural slowdown
+    }
 
-    // smoothing
-    smoothSpeed += (targetSpeed - smoothSpeed)*0.1;
+    // limit
+    if(speed > 255) speed = 255;
+    if(speed < 0) speed = 0;
 
     document.getElementById("speedometer").innerText =
-      Math.round(smoothSpeed/2.5) + " km/h";
+      Math.round(speed/2.5) + " km/h";
 }
 
-// Send data
+// SEND DATA
 function sendData(){
-    fetch(`http://${ESP_IP}/control?angle=${angle}&speed=${Math.round(smoothSpeed)}`)
+    fetch(`http://${ESP_IP}/control?angle=${angle}&speed=${Math.round(speed)}`)
     .catch(()=>{});
 }
 
-// Loop (important for smooth control)
+// LOOP
 setInterval(()=>{
     updateSpeed();
     sendData();
