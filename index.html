@@ -1,23 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login</title>
-  <link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Car Controller</title>
+
+<style>
+body{
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+}
+
+canvas{
+  background:#222;
+  border-radius:50%;
+}
+
+.slider{
+  width:80%;
+}
+
+#speedometer{
+  font-size:28px;
+  margin-top:10px;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-  <h1>School Portal</h1>
+<h2>🚗 PRO DRIVING CONTROLLER</h2>
 
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
+<canvas id="wheel" width="260" height="260"></canvas>
 
-  <!-- onclick hata diya -->
-  <button id="loginBtn">Login</button>
+<br><br>
 
-  <p id="error"></p>
-</div>
+<p>⛽ Accelerator</p>
+<input type="range" id="gas" class="slider" min="0" max="255">
 
-<script type="module" src="script.js"></script>
+<p>🛑 Brake</p>
+<input type="range" id="brake" class="slider" min="0" max="255">
+
+<div id="speedometer">0 km/h</div>
+
+<script>
+const ESP_IP = "192.168.4.1";
+
+let canvas = document.getElementById("wheel");
+let ctx = canvas.getContext("2d");
+
+let angle = 0;
+let targetSpeed = 0;
+let smoothSpeed = 0;
+
+// Draw steering wheel
+function drawWheel(){
+    ctx.clearRect(0,0,260,260);
+
+    ctx.save();
+    ctx.translate(130,130);
+    ctx.rotate(angle);
+
+    ctx.beginPath();
+    ctx.arc(0,0,110,0,Math.PI*2);
+    ctx.strokeStyle="white";
+    ctx.lineWidth=6;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,-90);
+    ctx.stroke();
+
+    ctx.restore();
+}
+drawWheel();
+
+// Touch steering
+canvas.addEventListener("touchmove",(e)=>{
+    let rect = canvas.getBoundingClientRect();
+
+    let x = e.touches[0].clientX - rect.left - 130;
+    let y = e.touches[0].clientY - rect.top - 130;
+
+    angle = Math.atan2(y,x);
+    drawWheel();
+});
+
+// Smooth speed calculation
+function updateSpeed(){
+    let gas = document.getElementById("gas").value;
+    let brake = document.getElementById("brake").value;
+
+    targetSpeed = gas - brake;
+    if(targetSpeed < 0) targetSpeed = 0;
+
+    // smoothing
+    smoothSpeed += (targetSpeed - smoothSpeed)*0.1;
+
+    document.getElementById("speedometer").innerText =
+      Math.round(smoothSpeed/2.5) + " km/h";
+}
+
+// Send data
+function sendData(){
+    fetch(`http://${ESP_IP}/control?angle=${angle}&speed=${Math.round(smoothSpeed)}`)
+    .catch(()=>{});
+}
+
+// Loop (important for smooth control)
+setInterval(()=>{
+    updateSpeed();
+    sendData();
+}, 50);
+</script>
+
 </body>
 </html>
